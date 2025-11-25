@@ -15,6 +15,21 @@ export interface LoginPayload {
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
+
+  // 🚨 FRONTEND VALIDATION
+  if (!payload.name.trim()) {
+    throw new Error("Name is required");
+  }
+
+  if (!payload.email.includes("@")) {
+    throw new Error("Invalid email address");
+  }
+
+  if (payload.password.length < 6) {
+    throw new Error("Password must be at least 6 characters long");
+  }
+
+
   const res = await fetch(`${API}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -22,7 +37,8 @@ export async function register(payload: RegisterPayload): Promise<AuthResponse> 
   });
   
   if (!res.ok) {
-    throw new Error("Registration failed");
+        const msg = await res.text();
+    throw new Error("Registration failed"+msg);
   }
   
   return res.json();
