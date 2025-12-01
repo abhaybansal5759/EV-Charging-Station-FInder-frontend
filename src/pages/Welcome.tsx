@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import { getUser } from "../utils/authUtils";
+import { Link } from "react-router-dom";
 
 export default function Welcome() {
   const user = getUser();
@@ -37,7 +38,7 @@ export default function Welcome() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      
+
       {/* Content */}
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-7xl mx-auto">
@@ -90,9 +91,13 @@ export default function Welcome() {
             <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
               Discover thousands of charging stations and plan your next electric journey
             </p>
-            <button className="bg-white text-slate-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg">
+            <Link
+              to="/stations"
+              className="inline-block bg-white text-slate-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg"
+            >
               Explore Stations Now
-            </button>
+            </Link>
+
           </div>
         </div>
       </div>

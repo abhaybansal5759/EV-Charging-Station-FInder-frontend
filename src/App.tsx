@@ -6,6 +6,8 @@ import Login from "./pages/Login";
 import Welcome from "./pages/Welcome";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
+import Stations from "./pages/Stations";
+
 
 export default function App() {
   return (
@@ -39,6 +41,15 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/stations"
+          element={
+            <ProtectedRoute>
+              <Stations />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );
