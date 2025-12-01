@@ -1,10 +1,13 @@
-import React from "react";
-import { MapContainer, TileLayer, useMap, Marker } from "react-leaflet";
+import React, { useEffect, useState } from "react";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState } from "react";
 
 import Navbar from "../components/Navbar";
+import { getNearbyStations } from "../api/stations";
+import { Station } from "../types/station";
+
+// Fix Leaflet marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
 L.Icon.Default.mergeOptions({
@@ -13,31 +16,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).toString(),
 });
 
+/* --------------------------------------------
+   User Location Logic
+---------------------------------------------*/
 
-
-const dummyStations = [
-  {
-    id: 1,
-    name: "Tata EV Fast Charge Hub",
-    distance: "2.4 km",
-    type: "DC Fast",
-    connector: ["CCS2", "Type2"],
-    power: "50 kW",
-    address: "Sector 21, Jaipur",
-  },
-  {
-    id: 2,
-    name: "Jio-BP Pulse Charge Point",
-    distance: "5.1 km",
-    type: "AC Charger",
-    connector: ["Type2"],
-    power: "22 kW",
-    address: "Tonk Road, Jaipur",
-  },
-];
-
-
-function UserLocationMarker() {
+function UserLocationMarker({ onLocation }: { onLocation: (pos: [number, number]) => void }) {
   const map = useMap();
   const [position, setPosition] = useState<[number, number] | null>(null);
 
@@ -53,8 +36,8 @@ function UserLocationMarker() {
         const coords: [number, number] = [latitude, longitude];
 
         setPosition(coords);
+        onLocation(coords);
 
-        // Move map to user location
         map.flyTo(coords, 15);
       },
       (err) => {
@@ -68,9 +51,30 @@ function UserLocationMarker() {
   return <Marker position={position} />;
 }
 
-
+/* --------------------------------------------
+   Main Stations Page
+---------------------------------------------*/
 
 export default function Stations() {
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [stations, setStations] = useState<Station[]>([]);
+
+  // Fetch stations after user location is set
+  useEffect(() => {
+    if (!userPos) return;
+
+    const fetchStations = async () => {
+      const [lat, lng] = userPos;
+
+      const data = await getNearbyStations(lat, lng);
+      setStations(data);
+
+      console.log("Fetched stations:", data);
+    };
+
+    fetchStations();
+  }, [userPos]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -93,7 +97,7 @@ export default function Stations() {
         {/* Layout: Map (left) + Stations List (right) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          {/* Placeholder Map Section */}
+          {/* Map Section */}
           <div className="bg-white h-80 rounded-lg shadow overflow-hidden">
             <MapContainer
               center={[20.5937, 78.9629]} // India center
@@ -105,52 +109,55 @@ export default function Stations() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
               />
-              <UserLocationMarker />
+
+              {/* User location */}
+              <UserLocationMarker onLocation={(coords) => setUserPos(coords)} />
             </MapContainer>
           </div>
 
-
-          {/* Placeholder Station List Section */}
+          {/* Station List Section */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-xl font-semibold mb-4">Nearby Stations</h2>
-            {/* <p className="text-gray-500">Stations list will appear here</p> */}
 
-            <div className="space-y-4">
-              {dummyStations.map((s) => (
-                <div
-                  key={s.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow transition cursor-pointer"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900">{s.name}</h3>
+            {stations?.length === 0 ? (
+              <p className="text-gray-500">Searching nearby chargers...</p>
+            ) : (
+              <div className="space-y-4">
+                {stations?.map((s) => (
+                  <div
+                    key={s._id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow transition cursor-pointer"
+                  >
+                    <h3 className="text-lg font-semibold text-gray-900">{s.name}</h3>
 
-                  <p className="text-sm text-gray-600 mt-1">{s.address}</p>
+                    <p className="text-sm text-gray-600 mt-1">{s.address}</p>
 
-                  <div className="flex items-center gap-3 mt-2 text-sm">
-                    <span className="bg-slate-100 px-2 py-1 rounded text-slate-700">
-                      {s.type}
-                    </span>
-
-                    <span className="bg-slate-100 px-2 py-1 rounded text-slate-700">
-                      {s.power}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                    <span>Connectors:</span>
-                    {s.connector.map((c, idx) => (
-                      <span key={idx} className="bg-gray-200 px-2 py-1 rounded">
-                        {c}
+                    <div className="flex items-center gap-3 mt-2 text-sm">
+                      <span className="bg-slate-100 px-2 py-1 rounded text-slate-700">
+                        {s.type}
                       </span>
-                    ))}
+
+                      <span className="bg-slate-100 px-2 py-1 rounded text-slate-700">
+                        {s.power_kw} kW
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                      <span>Connectors:</span>
+                      {s.connectors.map((c, idx) => (
+                        <span key={idx} className="bg-gray-200 px-2 py-1 rounded">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="text-sm text-slate-600 mt-2 font-medium">
+                      Distance: {(s.distance_meters / 1000).toFixed(2)} km
+                    </p>
                   </div>
-
-                  <p className="text-sm text-slate-600 mt-2 font-medium">
-                    Distance: {s.distance}
-                  </p>
-                </div>
-              ))}
-            </div>
-
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
