@@ -10,6 +10,7 @@ export async function getNearbyStations(lat: number, lng: number, radius: number
 
     // backend should return res.data.stations
     if (!res.data || !res.data.stations) return [];
+    console.log("API res.data:", res.data);
 
     return res.data.stations;
   } catch (err) {
